@@ -7,20 +7,22 @@ BASE_MODEL = "mistralai/Mistral-7B-v0.1"
 LORA_MODEL = "./minerva-lora"
 MERGED_OUTPUT = "./minerva-merged"
 
-# Cargar el modelo LoRA y fusionarlo, forzando tokenizer del modelo base
+# Cargar tokenizer primero (se guarda aparte, no lo toca PEFT)
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, use_fast=False)
+
+# Cargar modelo LoRA y fusionarlo
 model = AutoPeftModelForCausalLM.from_pretrained(
     LORA_MODEL,
     torch_dtype=torch.float16,
-    low_cpu_mem_usage=True,
-    tokenizer_name_or_path=BASE_MODEL  # 👈 esto es clave
+    low_cpu_mem_usage=True
 )
 
-# Fusionar y guardar
 model = model.merge_and_unload()
+
+# Guardar modelo fusionado
 model.save_pretrained(MERGED_OUTPUT, safe_serialization=True)
 
-# Guardar el tokenizer base
-tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, use_fast=False)
+# Guardar tokenizer desde el modelo base
 tokenizer.save_pretrained(MERGED_OUTPUT)
 
 print(f"\n✅ Modelo fusionado guardado en: {MERGED_OUTPUT}")
