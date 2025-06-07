@@ -6,18 +6,20 @@ import torch
 
 model_id = "mistralai/Mistral-7B-v0.1"
 
+# Tokenizer
 tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False)
 tokenizer.pad_token = tokenizer.eos_token
 
+# Modelo base con soporte 4bit y configuración de entrenamiento
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     device_map="auto",
     load_in_4bit=True,
     torch_dtype=torch.float16
 )
-
 model = prepare_model_for_kbit_training(model)
 
+# Configuración LoRA
 peft_config = LoraConfig(
     r=8,
     lora_alpha=16,
@@ -25,9 +27,9 @@ peft_config = LoraConfig(
     bias="none",
     task_type="CAUSAL_LM"
 )
-
 model = get_peft_model(model, peft_config)
 
+# Dataset
 dataset = load_dataset("json", data_files="./data/dataset.jsonl")["train"]
 
 def format(example):
@@ -37,6 +39,7 @@ def format(example):
 
 dataset = dataset.map(format)
 
+# Argumentos de entrenamiento
 training_args = TrainingArguments(
     output_dir="./minerva-lora",
     per_device_train_batch_size=1,
@@ -45,12 +48,14 @@ training_args = TrainingArguments(
     num_train_epochs=3,
     logging_steps=10,
     save_strategy="epoch",
+    evaluation_strategy="epoch",  # << necesario para load_best_model_at_end
     save_total_limit=1,
     load_best_model_at_end=True,
     bf16=True,
     report_to="none"
 )
 
+# Entrenamiento
 trainer = SFTTrainer(
     model=model,
     train_dataset=dataset,
@@ -61,5 +66,7 @@ trainer = SFTTrainer(
 )
 
 trainer.train()
+
+# Guardar modelo y tokenizer
 model.save_pretrained("./minerva-lora")
 tokenizer.save_pretrained("./minerva-lora")
