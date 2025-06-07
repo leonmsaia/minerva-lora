@@ -19,8 +19,8 @@ model = AutoPeftModelForCausalLM.from_pretrained(
 
 model = model.merge_and_unload()
 
-# Guardar modelo fusionado
-model.save_pretrained(MERGED_OUTPUT, safe_serialization=True)
+# Guardar modelo fusionado (sin safe_serialization)
+model.save_pretrained(MERGED_OUTPUT)
 
 # Guardar tokenizer desde el modelo base
 tokenizer.save_pretrained(MERGED_OUTPUT)
