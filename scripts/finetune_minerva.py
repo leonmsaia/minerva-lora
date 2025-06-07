@@ -10,7 +10,7 @@ model_id = "mistralai/Mistral-7B-v0.1"
 tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=False)
 tokenizer.pad_token = tokenizer.eos_token
 
-# Modelo base con soporte 4bit y configuración de entrenamiento
+# Modelo base con soporte 4bit
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     device_map="auto",
@@ -29,7 +29,7 @@ peft_config = LoraConfig(
 )
 model = get_peft_model(model, peft_config)
 
-# Dataset
+# Cargar dataset
 dataset = load_dataset("json", data_files="./data/dataset.jsonl")["train"]
 
 def format(example):
@@ -39,7 +39,7 @@ def format(example):
 
 dataset = dataset.map(format)
 
-# Argumentos de entrenamiento
+# Configuración de entrenamiento SIN evaluación
 training_args = TrainingArguments(
     output_dir="./minerva-lora",
     per_device_train_batch_size=1,
@@ -48,9 +48,9 @@ training_args = TrainingArguments(
     num_train_epochs=3,
     logging_steps=10,
     save_strategy="epoch",
-    evaluation_strategy="epoch",  # << necesario para load_best_model_at_end
+    evaluation_strategy="no",           # ✅ sin evaluación
+    load_best_model_at_end=False,       # ✅ sin modelo "mejor"
     save_total_limit=1,
-    load_best_model_at_end=True,
     bf16=True,
     report_to="none"
 )
